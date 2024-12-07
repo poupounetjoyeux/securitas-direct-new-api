@@ -54,7 +54,7 @@ class ApiManager:
         uuid: str,
         id_device_indigitall: str,
         command_type: CommandType,
-        delay_check_operation: int = 2,
+        delay_check_operation: int = 2
     ) -> None:
         """Create the object."""
         self.username = username

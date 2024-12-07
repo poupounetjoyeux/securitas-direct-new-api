@@ -12,6 +12,7 @@
                     "country": "Country Code",
                     "code": "PIN Code (leave empty for no PIN)",
                     "PERI_alarm": "Is there a Perimetral alarm?",
+                    "arm_away_as_arm_night": "Arm away put the alarm in armed night mode",
                     "check_alarm_panel": "Check alarm panel's status in every request",
                     "scan_interval": "Update scan interval (sec)",
                     "delay_check_operation":"Delay to check the arming and disarming operations (sec)"

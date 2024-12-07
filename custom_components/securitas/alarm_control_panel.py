@@ -300,6 +300,9 @@ class SecuritasAlarm(alarm.AlarmControlPanelEntity):
         """Send arm away command."""
         if self.check_code(code):
             self.__force_state(STATE_ALARM_ARMING)
+            if bool(client.config.get(CONF_ARM_AWAY_AS_ARM_NIGHT, DEFAULT_ARM_NIGHT_AS_ARM_AWAY)):
+                await self.set_arm_state(STATE_ALARM_ARMED_NIGHT)
+                return
             await self.set_arm_state(STATE_ALARM_ARMED_AWAY)
 
     async def async_alarm_arm_night(self, code: str | None = None):
