@@ -14,7 +14,7 @@
                     "PERI_alarm": "Is there a Perimetral alarm?",
                     "check_alarm_panel": "Check alarm panel's status in every request",
                     "scan_interval": "Update scan interval (sec)",
-                    "delay_check_operation":"Delay to check the arming and disarming operations (sec)"
+                    "delay_check_operation": "Delay to check the arming and disarming operations (sec)"
                 },
                 "description": "Login into Securitas Direct.",
                 "title": "Login"
@@ -35,6 +35,10 @@
                 "data": {
                     "code": "PIN Code (leave empty for no PIN)",
                     "PERI_alarm": "Is there a Perimetral alarm?",
+                    "map_home": "Arm Home maps to",
+                    "map_away": "Arm Away maps to",
+                    "map_night": "Arm Night maps to",
+                    "map_custom": "Arm Custom maps to",
                     "check_alarm_panel": "Check alarm panel's status in every request (not recommended)",
                     "scan_interval": "Update scan interval (sec)",
                     "delay_check_operation": "Delay to check the arming and disarming operation (sec)"
