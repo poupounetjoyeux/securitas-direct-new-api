@@ -55,7 +55,6 @@ from .securitas_direct_new_api import (
     STD_DEFAULTS,
     STD_OPTIONS,
     STATE_LABELS,
-    SecuritasState,
 )
 
 VERSION = 1

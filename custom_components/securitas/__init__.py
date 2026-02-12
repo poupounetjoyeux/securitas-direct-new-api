@@ -34,11 +34,9 @@ from .securitas_direct_new_api import (
     OtpPhone,
     PERI_DEFAULTS,
     SecuritasDirectError,
-    SecuritasState,
     Service,
     SStatus,
     STD_DEFAULTS,
-    STATE_TO_COMMAND,
     generate_device_id,
     generate_uuid,
 )
