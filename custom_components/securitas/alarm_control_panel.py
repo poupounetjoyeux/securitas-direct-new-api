@@ -29,31 +29,20 @@ from . import (
 from .securitas_direct_new_api import (
     ArmStatus,
     CheckAlarmStatus,
-    CommandType,
     DisarmStatus,
     Installation,
-    SecDirAlarmState,
+    PROTO_TO_STATE,
     SecuritasDirectError,
+    SecuritasState,
+    STATE_TO_COMMAND,
 )
 
-STD_STATE_MAP = {
-    AlarmControlPanelState.DISARMED: SecDirAlarmState.TOTAL_DISARMED,
-    AlarmControlPanelState.ARMED_AWAY: SecDirAlarmState.TOTAL_ARMED,
-    AlarmControlPanelState.ARMED_NIGHT: SecDirAlarmState.NIGHT_ARMED,
-    AlarmControlPanelState.ARMED_HOME: SecDirAlarmState.INTERIOR_PARTIAL,
-    AlarmControlPanelState.ARMED_CUSTOM_BYPASS: SecDirAlarmState.EXTERIOR_ARMED,
-}
-PERI_STATE_MAP = {
-    AlarmControlPanelState.DISARMED: SecDirAlarmState.TOTAL_DISARMED,
-    AlarmControlPanelState.ARMED_AWAY: SecDirAlarmState.TOTAL_ARMED,
-    AlarmControlPanelState.ARMED_NIGHT: SecDirAlarmState.INTERIOR_PARTIAL_AND_PERI,
-    AlarmControlPanelState.ARMED_HOME: SecDirAlarmState.INTERIOR_PARTIAL,
-    AlarmControlPanelState.ARMED_CUSTOM_BYPASS: SecDirAlarmState.EXTERIOR_ARMED,
-}
-
-STATE_MAP = {
-    CommandType.STD: STD_STATE_MAP,
-    CommandType.PERI: PERI_STATE_MAP,
+# Map HA alarm state names to config keys
+HA_STATE_TO_CONF_KEY: dict[str, str] = {
+    AlarmControlPanelState.ARMED_HOME: "map_home",
+    AlarmControlPanelState.ARMED_AWAY: "map_away",
+    AlarmControlPanelState.ARMED_NIGHT: "map_night",
+    AlarmControlPanelState.ARMED_CUSTOM_BYPASS: "map_custom",
 }
 
 _LOGGER = logging.getLogger(__name__)
@@ -107,8 +96,22 @@ class SecuritasAlarm(alarm.AlarmControlPanelEntity):
         self.installation: Installation = installation
         self._attr_extra_state_attributes: dict[str, Any] = {}
         self.client: SecuritasHub = client
-        self.state_map = STATE_MAP[self.client.command_type]
         self.hass: HomeAssistant = hass
+
+        # Build outgoing map: HA state -> API command string
+        # Build incoming map: protomResponse code -> HA state
+        self._command_map: dict[str, str] = {}
+        self._status_map: dict[str, str] = {}
+
+        for ha_state, conf_key in HA_STATE_TO_CONF_KEY.items():
+            sec_state_str = self.client.config.get(conf_key, SecuritasState.NOT_USED)
+            sec_state = SecuritasState(sec_state_str)
+            if sec_state != SecuritasState.NOT_USED:
+                self._command_map[ha_state] = STATE_TO_COMMAND[sec_state]
+                for code, state in PROTO_TO_STATE.items():
+                    if state == sec_state:
+                        self._status_map[code] = ha_state
+                        break
         self._update_interval: timedelta = timedelta(
             seconds=client.config.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
         )
@@ -201,17 +204,12 @@ class SecuritasAlarm(alarm.AlarmControlPanelEntity):
             self._attr_extra_state_attributes["response_data"] = (
                 status.protomResponseData
             )
-            # self._time = datetime.datetime.fromisoformat(status.protomResponseData)
 
             if status.protomResponse == "D":
                 self._state = AlarmControlPanelState.DISARMED
-            elif status.protomResponse == "T":
-                self._state = AlarmControlPanelState.ARMED_AWAY
-            elif status.protomResponse == "Q":
-                self._state = AlarmControlPanelState.ARMED_NIGHT
-            elif status.protomResponse == "P":
-                self._state = AlarmControlPanelState.ARMED_HOME
-            elif status.protomResponse in ("E", "B", "C", "A"):
+            elif status.protomResponse in self._status_map:
+                self._state = self._status_map[status.protomResponse]
+            else:
                 self._state = AlarmControlPanelState.ARMED_CUSTOM_BYPASS
 
     def check_code(self, code=None) -> bool:
@@ -237,7 +235,7 @@ class SecuritasAlarm(alarm.AlarmControlPanelEntity):
             disarm_status: DisarmStatus = DisarmStatus()
             try:
                 disarm_status = await self.client.session.disarm_alarm(
-                    self.installation
+                    self.installation, STATE_TO_COMMAND[SecuritasState.DISARMED]
                 )
             except SecuritasDirectError as err:
                 self._notify_error(self.hass, "Error disarming", err.args)
@@ -256,11 +254,15 @@ class SecuritasAlarm(alarm.AlarmControlPanelEntity):
 
     async def set_arm_state(self, mode: str) -> None:
         """Send set arm state command."""
+        command = self._command_map.get(mode)
+        if command is None:
+            _LOGGER.error("No command configured for mode %s", mode)
+            return
 
         arm_status: ArmStatus = ArmStatus()
         try:
             arm_status = await self.client.session.arm_alarm(
-                self.installation, self.state_map[mode]
+                self.installation, command
             )
         except SecuritasDirectError as err:
             _LOGGER.error(err.args)
@@ -312,9 +314,13 @@ class SecuritasAlarm(alarm.AlarmControlPanelEntity):
     @property
     def supported_features(self) -> int:
         """Return the list of supported features."""
-        return (
-            AlarmControlPanelEntityFeature.ARM_HOME
-            | AlarmControlPanelEntityFeature.ARM_AWAY
-            | AlarmControlPanelEntityFeature.ARM_NIGHT
-            | AlarmControlPanelEntityFeature.ARM_CUSTOM_BYPASS
-        )
+        features = 0
+        if AlarmControlPanelState.ARMED_HOME in self._command_map:
+            features |= AlarmControlPanelEntityFeature.ARM_HOME
+        if AlarmControlPanelState.ARMED_AWAY in self._command_map:
+            features |= AlarmControlPanelEntityFeature.ARM_AWAY
+        if AlarmControlPanelState.ARMED_NIGHT in self._command_map:
+            features |= AlarmControlPanelEntityFeature.ARM_NIGHT
+        if AlarmControlPanelState.ARMED_CUSTOM_BYPASS in self._command_map:
+            features |= AlarmControlPanelEntityFeature.ARM_CUSTOM_BYPASS
+        return features
