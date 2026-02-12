@@ -42,7 +42,7 @@
             },
             "mappings": {
                 "title": "Alarm State Mappings",
-                "description": "Map each Home Assistant alarm action to a Securitas alarm mode. Clear a field to disable that button.",
+                "description": "Map each Home Assistant alarm action to a Securitas alarm mode. Set to 'Not used' to disable a button.",
                 "data": {
                     "map_home": "Home",
                     "map_away": "Away",
