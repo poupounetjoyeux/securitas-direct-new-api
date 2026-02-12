@@ -109,7 +109,7 @@ class SecuritasAlarm(alarm.AlarmControlPanelEntity):
             if sec_state != SecuritasState.NOT_USED:
                 self._command_map[ha_state] = STATE_TO_COMMAND[sec_state]
                 for code, state in PROTO_TO_STATE.items():
-                    if state == sec_state:
+                    if state == sec_state and code not in self._status_map:
                         self._status_map[code] = ha_state
                         break
         self._update_interval: timedelta = timedelta(
