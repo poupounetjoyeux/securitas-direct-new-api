@@ -42,7 +42,6 @@ PROTO_TO_STATE: dict[str, SecuritasState] = {
 
 # Human-readable labels for the config UI
 STATE_LABELS: dict[SecuritasState, str] = {
-    SecuritasState.NOT_USED: "Not used",
     SecuritasState.DISARMED: "Disarmed",
     SecuritasState.PARTIAL: "Partial",
     SecuritasState.TOTAL: "Total",
@@ -53,7 +52,6 @@ STATE_LABELS: dict[SecuritasState, str] = {
 
 # Options available when perimeter is NOT configured
 STD_OPTIONS: list[SecuritasState] = [
-    SecuritasState.NOT_USED,
     SecuritasState.DISARMED,
     SecuritasState.PARTIAL,
     SecuritasState.TOTAL,
@@ -61,7 +59,6 @@ STD_OPTIONS: list[SecuritasState] = [
 
 # Options available when perimeter IS configured
 PERI_OPTIONS: list[SecuritasState] = [
-    SecuritasState.NOT_USED,
     SecuritasState.DISARMED,
     SecuritasState.PARTIAL,
     SecuritasState.TOTAL,
