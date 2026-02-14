@@ -207,6 +207,11 @@ class SecuritasAlarm(alarm.AlarmControlPanelEntity):
                 status.protomResponseData
             )
 
+            if not status.protomResponse:
+                _LOGGER.debug(
+                    "Received empty protomResponse from Securitas, ignoring"
+                )
+                return
             if status.protomResponse == "D":
                 self._state = AlarmControlPanelState.DISARMED
             elif status.protomResponse in self._status_map:
