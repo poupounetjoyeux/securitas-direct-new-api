@@ -737,6 +737,8 @@ class ApiManager:
         await self._check_capabilities_token(installation)
         response = await self._execute_request(content, "xSDisarmPanel", installation)
         response = response["data"]["xSDisarmPanel"]
+        if response is None:
+            raise SecuritasDirectError("Disarm response is None", response)
         if "res" in response and response["res"] != "OK":
             raise SecuritasDirectError(response["msg"], response)
 
