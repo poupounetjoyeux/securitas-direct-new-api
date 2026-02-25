@@ -2,7 +2,7 @@
 
 ## Problem
 
-The Securitas Direct integration treats perimeter sensors as an afterthought. It provides a checkbox to enable perimeter mode, but then maps all perimeter-related response codes (`E`, `B`, `C`, `A`) to a single HA state (`ARMED_CUSTOM_BYPASS`). This loses critical information: "total + perimeter" and "perimeter only" are very different security postures but display identically.
+The Securitas Direct integration treats perimeter sensors as an afterthought. It provides a checkbox to enable perimeter mode, but then maps all perimeter-related response codes (`E`, `B`, `A`) to a single HA state (`ARMED_CUSTOM_BYPASS`). This loses critical information: "total + perimeter" and "perimeter only" are very different security postures but display identically.
 
 The integration also repurposes HA buttons for different Securitas states depending on the perimeter checkbox (e.g. Night becomes Partial+Perimeter in PERI mode) but this remapping is hidden and not configurable.
 

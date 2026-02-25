@@ -105,15 +105,16 @@ class SecuritasAlarm(alarm.AlarmControlPanelEntity):
 
         for ha_state, conf_key in HA_STATE_TO_CONF_KEY.items():
             sec_state_str = self.client.config.get(conf_key)
-            if not sec_state_str or sec_state_str == SecuritasState.NOT_USED:
+            if not sec_state_str:
                 continue
             sec_state = SecuritasState(sec_state_str)
-            if sec_state != SecuritasState.NOT_USED:
-                self._command_map[ha_state] = STATE_TO_COMMAND[sec_state]
-                for code, state in PROTO_TO_STATE.items():
-                    if state == sec_state and code not in self._status_map:
-                        self._status_map[code] = ha_state
-                        break
+            if sec_state == SecuritasState.NOT_USED:
+                continue
+            self._command_map[ha_state] = STATE_TO_COMMAND[sec_state]
+            for code, state in PROTO_TO_STATE.items():
+                if state == sec_state and code not in self._status_map:
+                    self._status_map[code] = ha_state
+                    break
         self._update_interval: timedelta = timedelta(
             seconds=client.config.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
         )
