@@ -28,14 +28,15 @@ from .securitas_direct_new_api import (
     ApiDomains,
     ApiManager,
     CheckAlarmStatus,
-    CommandType,
     Installation,
     Login2FAError,
     LoginError,
     OtpPhone,
+    PERI_DEFAULTS,
     SecuritasDirectError,
     Service,
     SStatus,
+    STD_DEFAULTS,
     generate_device_id,
     generate_uuid,
 )
@@ -52,6 +53,10 @@ CONF_DEVICE_INDIGITALL = "idDeviceIndigitall"
 CONF_ENTRY_ID = "entry_id"
 CONF_INSTALLATION_KEY = "instalation"
 CONF_DELAY_CHECK_OPERATION = "delay_check_operation"
+CONF_MAP_HOME = "map_home"
+CONF_MAP_AWAY = "map_away"
+CONF_MAP_NIGHT = "map_night"
+CONF_MAP_CUSTOM = "map_custom"
 
 DEFAULT_USE_2FA = True
 DEFAULT_SCAN_INTERVAL = 120
@@ -108,6 +113,11 @@ async def async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
             CONF_CODE,
             CONF_SCAN_INTERVAL,
             CONF_CHECK_ALARM_PANEL,
+            CONF_PERI_ALARM,
+            CONF_MAP_HOME,
+            CONF_MAP_AWAY,
+            CONF_MAP_NIGHT,
+            CONF_MAP_CUSTOM,
         )
     ):
         # update entry replacing data with new options
@@ -139,6 +149,22 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
     config[CONF_ENTRY_ID] = entry.entry_id
     config = add_device_information(config)
+
+    # Read mapping config from entry data
+    config[CONF_MAP_HOME] = entry.data.get(CONF_MAP_HOME)
+    config[CONF_MAP_AWAY] = entry.data.get(CONF_MAP_AWAY)
+    config[CONF_MAP_NIGHT] = entry.data.get(CONF_MAP_NIGHT)
+    config[CONF_MAP_CUSTOM] = entry.data.get(CONF_MAP_CUSTOM)
+
+    # Migrate old config: derive per-button mappings from PERI_alarm checkbox
+    if config[CONF_MAP_HOME] is None:
+        is_peri = config.get(CONF_PERI_ALARM, DEFAULT_PERI_ALARM)
+        defaults = PERI_DEFAULTS if is_peri else STD_DEFAULTS
+        config[CONF_MAP_HOME] = defaults[CONF_MAP_HOME]
+        config[CONF_MAP_AWAY] = defaults[CONF_MAP_AWAY]
+        config[CONF_MAP_NIGHT] = defaults[CONF_MAP_NIGHT]
+        config[CONF_MAP_CUSTOM] = defaults[CONF_MAP_CUSTOM]
+
     if CONF_DEVICE_ID in entry.data:
         config[CONF_DEVICE_ID] = entry.data[CONF_DEVICE_ID]
     else:
@@ -306,11 +332,6 @@ class SecuritasHub:
         self.lang: str = ApiDomains().get_language(self.country)
         self.hass: HomeAssistant = hass
         self.services: dict[int, list[Service]] = {1: []}
-        self.command_type: CommandType = (
-            CommandType.PERI
-            if domain_config.get(CONF_PERI_ALARM, False)
-            else CommandType.STD
-        )
         self.session: ApiManager = ApiManager(
             domain_config[CONF_USERNAME],
             domain_config[CONF_PASSWORD],
@@ -319,7 +340,6 @@ class SecuritasHub:
             domain_config[CONF_DEVICE_ID],
             domain_config[CONF_UNIQUE_ID],
             domain_config[CONF_DEVICE_INDIGITALL],
-            self.command_type,
             domain_config[CONF_DELAY_CHECK_OPERATION],
         )
         self.installations: list[Installation] = []

@@ -1,81 +1,86 @@
 """Define constants for Securitas Direct API."""
 
-from enum import IntEnum, auto
-from typing import Final
-
-API_ARM: Final[str] = "ARM1"
-API_ARM_DAY: Final[str] = "ARMDAY1"
-API_ARM_NIGHT: Final[str] = "ARMNIGHT1"
-API_ARM_PERI: Final[str] = "PERI1"
-API_ARM_INTANDPERI: Final[str] = "ARM1PERI1"
-API_ARM_PARTIALINTANDPERI: Final[str] = "ARMDAY1PERI1"
-
-API_DISARM: Final[str] = "DARM1"
-API_DISARM_INTANDPERI: Final[str] = "DARM1DARMPERI"
+from enum import StrEnum
 
 
-class SecDirAlarmState(IntEnum):
-    """Define possible stats of an SD alarm as seen on the app or website."""
-
-    INTERIOR_PARTIAL = auto()
-    INTERIOR_TOTAL = auto()
-    INTERIOR_DISARMED = auto()
-    INTERIOR_PARTIAL_AND_PERI = auto()
-    NIGHT_ARMED = auto()
-    EXTERIOR_ARMED = auto()
-    EXTERIOR_DISARMED = auto()
-    TOTAL_ARMED = auto()
-    TOTAL_DISARMED = auto()
+class CommandType(StrEnum):
+    """Legacy command type enum - kept for migration from old config."""
+    STD = "std"
+    PERI = "peri"
 
 
-# not used (yet), but I wanted to store this mapping somewhere
-MAP_STATE_TO_PROTO_STATUS = {
-    SecDirAlarmState.INTERIOR_PARTIAL: "P",
-    SecDirAlarmState.INTERIOR_TOTAL: "T",
-    SecDirAlarmState.INTERIOR_DISARMED: "D",
-    SecDirAlarmState.INTERIOR_PARTIAL_AND_PERI: "",  # FIXME
-    SecDirAlarmState.NIGHT_ARMED: "Q",
-    SecDirAlarmState.EXTERIOR_ARMED: "E",
-    SecDirAlarmState.EXTERIOR_DISARMED: "D",
-    SecDirAlarmState.TOTAL_ARMED: "T",
-    SecDirAlarmState.TOTAL_DISARMED: "D",
+class SecuritasState(StrEnum):
+    """Verisure alarm states - combinations of interior mode and perimeter."""
+    NOT_USED = "not_used"
+    DISARMED = "disarmed"
+    PARTIAL = "partial"
+    TOTAL = "total"
+    PERI_ONLY = "peri_only"
+    PARTIAL_PERI = "partial_peri"
+    TOTAL_PERI = "total_peri"
+
+
+# Map SecuritasState -> API arm command string
+STATE_TO_COMMAND: dict[SecuritasState, str] = {
+    SecuritasState.DISARMED: "DARM1DARMPERI",
+    SecuritasState.PARTIAL: "ARMDAY1",
+    SecuritasState.TOTAL: "ARM1",
+    SecuritasState.PERI_ONLY: "PERI1",
+    SecuritasState.PARTIAL_PERI: "ARMDAY1PERI1",
+    SecuritasState.TOTAL_PERI: "ARM1PERI1",
 }
 
-# Map alarm states to commands. These "standard" commands assume there are no
-# exterior (perimetral) sensors, so having a state to arm the exterior doesn't
-# make a lot of sense, but the original HA code had this, so I just left it here
-STD_COMMANDS_MAP = {
-    SecDirAlarmState.EXTERIOR_ARMED: API_ARM_PERI,  # see comment above
-    SecDirAlarmState.INTERIOR_PARTIAL: API_ARM_DAY,
-    SecDirAlarmState.INTERIOR_TOTAL: API_ARM,
-    SecDirAlarmState.NIGHT_ARMED: API_ARM_NIGHT,
-    SecDirAlarmState.TOTAL_ARMED: API_ARM,
-    SecDirAlarmState.TOTAL_DISARMED: API_DISARM,
+# Map protomResponse code -> SecuritasState
+PROTO_TO_STATE: dict[str, SecuritasState] = {
+    "D": SecuritasState.DISARMED,
+    "E": SecuritasState.PERI_ONLY,
+    "P": SecuritasState.PARTIAL,
+    "B": SecuritasState.PARTIAL_PERI,
+    "T": SecuritasState.TOTAL,
+    "A": SecuritasState.TOTAL_PERI,
 }
 
-# Map alarm states to commands assuming there are exterior (perimetral) sensors.
-PERI_COMMANDS_MAP = {
-    SecDirAlarmState.EXTERIOR_ARMED: API_ARM_PERI,
-    SecDirAlarmState.EXTERIOR_DISARMED: API_DISARM,
-    SecDirAlarmState.INTERIOR_PARTIAL: API_ARM_DAY,
-    SecDirAlarmState.INTERIOR_TOTAL: API_ARM,
-    SecDirAlarmState.INTERIOR_PARTIAL_AND_PERI: API_ARM_PARTIALINTANDPERI,
-    SecDirAlarmState.INTERIOR_DISARMED: API_DISARM,
-    # AlarmStates.NIGHT_ARMED: API_ARM_NIGHT,
-    SecDirAlarmState.TOTAL_ARMED: API_ARM_INTANDPERI,
-    SecDirAlarmState.TOTAL_DISARMED: API_DISARM_INTANDPERI,
+# Human-readable labels for the config UI
+STATE_LABELS: dict[SecuritasState, str] = {
+    SecuritasState.NOT_USED: "Not used",
+    SecuritasState.DISARMED: "Disarmed",
+    SecuritasState.PARTIAL: "Partial",
+    SecuritasState.TOTAL: "Total",
+    SecuritasState.PERI_ONLY: "Perimeter only",
+    SecuritasState.PARTIAL_PERI: "Partial + Perimeter",
+    SecuritasState.TOTAL_PERI: "Total + Perimeter",
 }
 
+# Options available when perimeter is NOT configured
+STD_OPTIONS: list[SecuritasState] = [
+    SecuritasState.NOT_USED,
+    SecuritasState.DISARMED,
+    SecuritasState.PARTIAL,
+    SecuritasState.TOTAL,
+]
 
-class CommandType(IntEnum):
-    """Enumerate possible mappings from states to commands."""
+# Options available when perimeter IS configured
+PERI_OPTIONS: list[SecuritasState] = [
+    SecuritasState.NOT_USED,
+    SecuritasState.DISARMED,
+    SecuritasState.PARTIAL,
+    SecuritasState.TOTAL,
+    SecuritasState.PERI_ONLY,
+    SecuritasState.PARTIAL_PERI,
+    SecuritasState.TOTAL_PERI,
+]
 
-    STD = auto()
-    PERI = auto()
+# Default mappings matching current behavior (keyed by HA button name)
+STD_DEFAULTS: dict[str, SecuritasState] = {
+    "map_home": SecuritasState.PARTIAL,
+    "map_away": SecuritasState.TOTAL,
+    "map_night": SecuritasState.PARTIAL,
+    "map_custom": SecuritasState.NOT_USED,
+}
 
-
-# The ApiManager will pick one mapping from this
-COMMAND_MAP = {
-    CommandType.STD: STD_COMMANDS_MAP,
-    CommandType.PERI: PERI_COMMANDS_MAP,
+PERI_DEFAULTS: dict[str, SecuritasState] = {
+    "map_home": SecuritasState.PARTIAL,
+    "map_away": SecuritasState.TOTAL_PERI,
+    "map_night": SecuritasState.PARTIAL_PERI,
+    "map_custom": SecuritasState.PERI_ONLY,
 }

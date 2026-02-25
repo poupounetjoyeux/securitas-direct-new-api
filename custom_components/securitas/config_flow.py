@@ -30,6 +30,10 @@ from . import (
     CONF_DELAY_CHECK_OPERATION,
     CONF_DEVICE_INDIGITALL,
     CONF_ENTRY_ID,
+    CONF_MAP_AWAY,
+    CONF_MAP_CUSTOM,
+    CONF_MAP_HOME,
+    CONF_MAP_NIGHT,
     CONF_PERI_ALARM,
     CONF_USE_2FA,
     CONFIG_SCHEMA,
@@ -42,7 +46,16 @@ from . import (
     SecuritasHub,
     generate_uuid,
 )
-from .securitas_direct_new_api import CommandType, Installation, Login2FAError, OtpPhone
+from .securitas_direct_new_api import (
+    Installation,
+    Login2FAError,
+    OtpPhone,
+    PERI_DEFAULTS,
+    PERI_OPTIONS,
+    STD_DEFAULTS,
+    STD_OPTIONS,
+    STATE_LABELS,
+)
 
 VERSION = 1
 
@@ -229,50 +242,43 @@ class FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
 
 class SecuritasOptionsFlowHandler(config_entries.OptionsFlow):
-    """Handle PVPC options."""
+    """Handle Securitas options."""
+
+    def __init__(self) -> None:
+        """Initialize options flow."""
+        self._general_data: dict[str, Any] = {}
+
+    def _get(self, key, default=None):
+        """Read current value from options, falling back to entry data."""
+        return self.config_entry.options.get(
+            key, self.config_entry.data.get(key, default)
+        )
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Manage the options."""
+        """Step 1: General settings."""
         if user_input is not None:
-            return self.async_create_entry(title="", data=user_input)
+            self._general_data = user_input
+            return await self.async_step_mappings()
 
-        # Fill options with entry data
-        scan_interval: int = self.config_entry.options.get(
-            CONF_SCAN_INTERVAL,
-            self.config_entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
+        scan_interval = self._get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
+        code = ""
+        delay_check_operation = self._get(
+            CONF_DELAY_CHECK_OPERATION, DEFAULT_DELAY_CHECK_OPERATION
         )
-
-        code: str = ""
-        # self.config_entry.options.get(
-        #     CONF_CODE, self.config_entry.data.get(CONF_CODE, DEFAULT_CODE)
-        # )
-
-        delay_check_operation: int = self.config_entry.options.get(
-            CONF_DELAY_CHECK_OPERATION,
-            self.config_entry.data.get(
-                CONF_DELAY_CHECK_OPERATION, DEFAULT_DELAY_CHECK_OPERATION
-            ),
+        check_alarm_panel = self._get(
+            CONF_CHECK_ALARM_PANEL, DEFAULT_CHECK_ALARM_PANEL
         )
-
-        check_alarm_panel: bool = self.config_entry.options.get(
-            CONF_CHECK_ALARM_PANEL,
-            self.config_entry.data.get(
-                CONF_CHECK_ALARM_PANEL, DEFAULT_CHECK_ALARM_PANEL
-            ),
-        )
-
-        peri_alarm: CommandType = self.config_entry.options.get(
-            CONF_PERI_ALARM,
-            self.config_entry.data.get(CONF_PERI_ALARM, DEFAULT_PERI_ALARM),
-        )
+        peri_alarm = self._get(CONF_PERI_ALARM, DEFAULT_PERI_ALARM)
 
         schema = vol.Schema(
             {
                 vol.Optional(CONF_CODE, default=code): str,
                 vol.Optional(CONF_PERI_ALARM, default=peri_alarm): bool,
-                vol.Optional(CONF_CHECK_ALARM_PANEL, default=check_alarm_panel): bool,
+                vol.Optional(
+                    CONF_CHECK_ALARM_PANEL, default=check_alarm_panel
+                ): bool,
                 vol.Optional(CONF_SCAN_INTERVAL, default=scan_interval): int,
                 vol.Optional(
                     CONF_DELAY_CHECK_OPERATION, default=delay_check_operation
@@ -280,3 +286,45 @@ class SecuritasOptionsFlowHandler(config_entries.OptionsFlow):
             }
         )
         return self.async_show_form(step_id="init", data_schema=schema)
+
+    async def async_step_mappings(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Step 2: Alarm state mappings."""
+        if user_input is not None:
+            data = {**self._general_data, **user_input}
+            return self.async_create_entry(title="", data=data)
+
+        peri_alarm = self._general_data.get(CONF_PERI_ALARM, DEFAULT_PERI_ALARM)
+
+        # Determine defaults for mapping dropdowns
+        defaults = PERI_DEFAULTS if peri_alarm else STD_DEFAULTS
+        map_home = self._get(CONF_MAP_HOME, defaults[CONF_MAP_HOME])
+        map_away = self._get(CONF_MAP_AWAY, defaults[CONF_MAP_AWAY])
+        map_night = self._get(CONF_MAP_NIGHT, defaults[CONF_MAP_NIGHT])
+        map_custom = self._get(CONF_MAP_CUSTOM, defaults[CONF_MAP_CUSTOM])
+
+        # Build dropdown options based on perimeter setting
+        options = PERI_OPTIONS if peri_alarm else STD_OPTIONS
+        select_options = [
+            {"value": state.value, "label": STATE_LABELS[state]}
+            for state in options
+        ]
+
+        schema = vol.Schema(
+            {
+                vol.Optional(CONF_MAP_HOME, default=map_home): selector(
+                    {"select": {"options": select_options}}
+                ),
+                vol.Optional(CONF_MAP_AWAY, default=map_away): selector(
+                    {"select": {"options": select_options}}
+                ),
+                vol.Optional(CONF_MAP_NIGHT, default=map_night): selector(
+                    {"select": {"options": select_options}}
+                ),
+                vol.Optional(CONF_MAP_CUSTOM, default=map_custom): selector(
+                    {"select": {"options": select_options}}
+                ),
+            }
+        )
+        return self.async_show_form(step_id="mappings", data_schema=schema)

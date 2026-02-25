@@ -11,7 +11,6 @@ from uuid import uuid4
 from aiohttp import ClientConnectorError, ClientSession
 import jwt
 
-from .const import COMMAND_MAP, CommandType, SecDirAlarmState
 from .dataTypes import (
     AirQuality,
     ArmStatus,
@@ -56,7 +55,6 @@ class ApiManager:
         device_id: str,
         uuid: str,
         id_device_indigitall: str,
-        command_type: CommandType,
         delay_check_operation: int = 2,
     ) -> None:
         """Create the object."""
@@ -66,7 +64,6 @@ class ApiManager:
         self.country = country.upper()
         self.language = domains.get_language(country)
         self.api_url = domains.get_url(country)
-        self.command_map = COMMAND_MAP[command_type]
         self.delay_check_operation: int = delay_check_operation
 
         self.protom_response: str = ""
@@ -654,13 +651,13 @@ class ApiManager:
         return response["data"]["xSCheckAlarmStatus"]
 
     async def arm_alarm(
-        self, installation: Installation, mode: SecDirAlarmState
+        self, installation: Installation, command: str
     ) -> ArmStatus:
         """Arms the alarm in the specified mode."""
         content = {
             "operationName": "xSArmPanel",
             "variables": {
-                "request": self.command_map[mode],
+                "request": command,
                 "numinst": installation.number,
                 "panel": installation.panel,
                 "currentStatus": self.protom_response,
@@ -681,7 +678,7 @@ class ApiManager:
         while (count == 1) or (raw_data.get("res") == "WAIT"):
             await asyncio.sleep(self.delay_check_operation)
             raw_data = await self._check_arm_status(
-                installation, reference_id, mode, count
+                installation, reference_id, command, count
             )
             count += 1
 
@@ -701,14 +698,14 @@ class ApiManager:
         self,
         installation: Installation,
         reference_id: str,
-        mode: SecDirAlarmState,
+        command: str,
         counter: int,
     ) -> dict[str, Any]:
         """Check progress of the alarm."""
         content = {
             "operationName": "ArmStatus",
             "variables": {
-                "request": self.command_map[mode],
+                "request": command,
                 "numinst": installation.number,
                 "panel": installation.panel,
                 "currentStatus": self.protom_response,
@@ -722,12 +719,14 @@ class ApiManager:
         raw_data = response["data"]["xSArmStatus"]
         return raw_data
 
-    async def disarm_alarm(self, installation: Installation) -> DisarmStatus:
+    async def disarm_alarm(
+        self, installation: Installation, command: str
+    ) -> DisarmStatus:
         """Disarm the alarm."""
         content = {
             "operationName": "xSDisarmPanel",
             "variables": {
-                "request": self.command_map[SecDirAlarmState.TOTAL_DISARMED],
+                "request": command,
                 "numinst": installation.number,
                 "panel": installation.panel,
                 "currentStatus": self.protom_response,
@@ -753,7 +752,7 @@ class ApiManager:
             raw_data = await self._check_disarm_status(
                 installation,
                 reference_id,
-                SecDirAlarmState.TOTAL_DISARMED,
+                command,
                 count,
             )
             count = count + 1
@@ -774,14 +773,14 @@ class ApiManager:
         self,
         installation: Installation,
         reference_id: str,
-        arm_type: SecDirAlarmState,
+        command: str,
         counter: int,
     ) -> dict[str, Any]:
         """Check progress of the alarm."""
         content = {
             "operationName": "DisarmStatus",
             "variables": {
-                "request": self.command_map[arm_type],
+                "request": command,
                 "numinst": installation.number,
                 "panel": installation.panel,
                 "currentStatus": self.protom_response,
