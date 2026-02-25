@@ -1,0 +1,45 @@
+{
+    "config": {
+        "abort": {
+            "already_configured": "El servicio ya está configurado"
+        },
+        "step": {
+            "user": {
+                "data": {
+                    "username": "Usuario",
+                    "password": "Contraseña",
+                    "use_2FA": "Usar 2FA",
+                    "country": "Código de país",
+                    "code": "Código PIN (dejar vacío si no hay PIN)",
+                    "PERI_alarm": "¿Hay una alarma perimetral?",
+                    "check_alarm_panel": "Comprobar el estado del panel de alarma en cada solicitud",
+                    "scan_interval": "Intervalo de actualización (seg)",
+                    "delay_check_operation": "Retardo para comprobar las operaciones de armado y desarmado (seg)"
+                },
+                "description": "Iniciar sesión en Securitas Direct.",
+                "title": "Iniciar sesión"
+            },
+            "phone_list": {
+                "description": "Por favor, selecciona el teléfono para enviar el código 2FA",
+                "title": "Securitas Direct 2FA"
+            },
+            "otp_challenge": {
+                "description": "Introduce el código que has recibido en tu teléfono",
+                "title": "Securitas Direct 2FA"
+            }
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "data": {
+                    "code": "Código PIN (dejar vacío si no hay PIN)",
+                    "PERI_alarm": "¿Hay una alarma perimetral?",
+                    "check_alarm_panel": "Comprobar el estado del panel de alarma en cada solicitud (no recomendado)",
+                    "scan_interval": "Intervalo de actualización (seg)",
+                    "delay_check_operation": "Retardo para comprobar las operaciones de armado y desarmado (seg)"
+                }
+            }
+        }
+    }
+}
