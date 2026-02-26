@@ -375,6 +375,9 @@ class ApiManager:
                 self.authentication_token_exp = datetime.fromtimestamp(
                     token["exp"]
                 )
+            self.login_timestamp = int(datetime.now().timestamp() * 1000)
+        else:
+            return False
         if refresh_data.get("refreshToken"):
             self.refresh_token_value = refresh_data["refreshToken"]
 
