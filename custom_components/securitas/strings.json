@@ -1,0 +1,55 @@
+{
+    "config": {
+        "abort": {
+            "already_configured": "Service is already configured"
+        },
+        "step": {
+            "user": {
+                "data": {
+                    "username": "Username",
+                    "password": "Password",
+                    "use_2FA": "Use 2FA",
+                    "country": "Country Code",
+                    "code": "PIN Code (leave empty for no PIN)",
+                    "PERI_alarm": "Is there a Perimetral alarm?",
+                    "check_alarm_panel": "Check alarm panel's status in every request",
+                    "scan_interval": "Update scan interval (sec)",
+                    "delay_check_operation": "Delay to check the arming and disarming operations (sec)"
+                },
+                "description": "Login into Securitas Direct.",
+                "title": "Login"
+            },
+            "phone_list": {
+                "description": "Please select the phone to send the 2FA code",
+                "title": "Securitas Direct 2FA"
+            },
+            "otp_challenge": {
+                "description": "Enter the code you received on your phone",
+                "title": "Securitas Direct 2FA"
+            }
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "data": {
+                    "code": "PIN Code (leave empty for no PIN)",
+                    "PERI_alarm": "Is there a Perimetral alarm?",
+                    "check_alarm_panel": "Check alarm panel's status in every request (not recommended)",
+                    "scan_interval": "Update scan interval (sec)",
+                    "delay_check_operation": "Delay to check the arming and disarming operation (sec)"
+                }
+            },
+            "mappings": {
+                "title": "Alarm State Mappings",
+                "description": "Map each Home Assistant alarm action to a Securitas alarm mode. Set to 'Not used' to disable a button.",
+                "data": {
+                    "map_home": "Home",
+                    "map_away": "Away",
+                    "map_night": "Night",
+                    "map_custom": "Custom"
+                }
+            }
+        }
+    }
+}
