@@ -240,7 +240,7 @@ class ApiManager:
                     if await self.refresh_token():
                         return
                     _LOGGER.debug("Refresh token failed, falling back to login")
-                except SecuritasDirectError:
+                except Exception:  # noqa: BLE001
                     _LOGGER.debug("Refresh token error, falling back to login")
             _LOGGER.debug("Authentication token expired, logging in again")
             await self.login()
@@ -312,6 +312,19 @@ class ApiManager:
         if validate_data is None:
             raise SecuritasDirectError("xSValidateDevice response is None", response)
         self.authentication_token = validate_data["hash"]
+        try:
+            token = jwt.decode(
+                self.authentication_token,
+                algorithms=["HS256"],
+                options={"verify_signature": False},
+            )
+        except jwt.exceptions.DecodeError:
+            _LOGGER.warning(
+                "Failed to decode authentication token after device validation"
+            )
+        else:
+            if "exp" in token:
+                self.authentication_token_exp = datetime.fromtimestamp(token["exp"])
         if validate_data.get("refreshToken"):
             self.refresh_token_value = validate_data["refreshToken"]
         return (None, None)
@@ -344,6 +357,9 @@ class ApiManager:
         if refresh_data is None:
             raise SecuritasDirectError("xSRefreshLogin response is None", response)
 
+        if refresh_data.get("res") != "OK":
+            return False
+
         if refresh_data.get("hash"):
             self.authentication_token = refresh_data["hash"]
             try:
@@ -354,15 +370,15 @@ class ApiManager:
                 )
             except jwt.exceptions.DecodeError:
                 _LOGGER.warning("Failed to decode refreshed authentication token")
-            else:
-                if "exp" in token:
-                    self.authentication_token_exp = datetime.fromtimestamp(
-                        token["exp"]
-                    )
+                return False
+            if "exp" in token:
+                self.authentication_token_exp = datetime.fromtimestamp(
+                    token["exp"]
+                )
         if refresh_data.get("refreshToken"):
             self.refresh_token_value = refresh_data["refreshToken"]
 
-        return refresh_data["res"] == "OK"
+        return True
 
     async def send_otp(self, device_id: int, auth_otp_hash: str) -> bool:
         """Send the OTP device challenge."""
