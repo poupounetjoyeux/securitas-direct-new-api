@@ -234,6 +234,14 @@ class ApiManager:
         if (self.authentication_token is None) or (
             datetime.now() + timedelta(minutes=1) > self.authentication_token_exp
         ):
+            if self.refresh_token_value:
+                _LOGGER.debug("Authentication token expired, refreshing")
+                try:
+                    if await self.refresh_token():
+                        return
+                    _LOGGER.debug("Refresh token failed, falling back to login")
+                except SecuritasDirectError:
+                    _LOGGER.debug("Refresh token error, falling back to login")
             _LOGGER.debug("Authentication token expired, logging in again")
             await self.login()
 
