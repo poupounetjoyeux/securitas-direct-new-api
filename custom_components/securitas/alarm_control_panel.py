@@ -301,8 +301,9 @@ class SecuritasAlarm(alarm.AlarmControlPanelEntity):
                 )
             except SecuritasDirectError as err:
                 _LOGGER.warning(
-                    "Failed to disarm before re-arming (alarm may already be "
-                    "disarmed), continuing with arm: %s",
+                    "Failed to disarm before re-arming (state: %s, alarm may "
+                    "already be disarmed), continuing with arm: %s",
+                    self._state,
                     err.args,
                 )
             else:
