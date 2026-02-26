@@ -304,6 +304,8 @@ class ApiManager:
         if validate_data is None:
             raise SecuritasDirectError("xSValidateDevice response is None", response)
         self.authentication_token = validate_data["hash"]
+        if validate_data.get("refreshToken"):
+            self.refresh_token_value = validate_data["refreshToken"]
         return (None, None)
 
     async def refresh_token(self) -> bool:
@@ -312,10 +314,19 @@ class ApiManager:
             "operationName": "RefreshLogin",
             "variables": {
                 "refreshToken": self.refresh_token_value,
-                "uuid": self.uuid,  # uuid4(),
+                "id": self._generate_id(),
+                "uuid": self.uuid,
                 "country": self.country,
                 "lang": self.language,
                 "callby": "OWA_10",
+                "idDevice": self.device_id,
+                "idDeviceIndigitall": self.id_device_indigitall,
+                "deviceType": self.device_type,
+                "deviceVersion": self.device_version,
+                "deviceResolution": self.device_resolution,
+                "deviceName": self.device_name,
+                "deviceBrand": self.device_brand,
+                "deviceOsVersion": self.device_os_version,
             },
             "query": "mutation RefreshLogin($refreshToken: String!, $id: String!, $country: String!, $lang: String!, $callby: String!, $idDevice: String!, $idDeviceIndigitall: String!, $deviceType: String!, $deviceVersion: String!, $deviceResolution: String!, $deviceName: String!, $deviceBrand: String!, $deviceOsVersion: String!, $uuid: String!) {\n  xSRefreshLogin(refreshToken: $refreshToken, id: $id, country: $country, lang: $lang, callby: $callby, idDevice: $idDevice, idDeviceIndigitall: $idDeviceIndigitall, deviceType: $deviceType, deviceVersion: $deviceVersion, deviceResolution: $deviceResolution, deviceName: $deviceName, deviceBrand: $deviceBrand, deviceOsVersion: $deviceOsVersion, uuid: $uuid) {\n    __typename\n    res\n    msg\n    hash\n    refreshToken\n    legals\n    changePassword\n    needDeviceAuthorization\n    mainUser\n  }\n}",
         }
@@ -324,7 +335,26 @@ class ApiManager:
         refresh_data = response["data"]["xSRefreshLogin"]
         if refresh_data is None:
             raise SecuritasDirectError("xSRefreshLogin response is None", response)
-        return refresh_data["res"]
+
+        if refresh_data.get("hash"):
+            self.authentication_token = refresh_data["hash"]
+            try:
+                token = jwt.decode(
+                    self.authentication_token,
+                    algorithms=["HS256"],
+                    options={"verify_signature": False},
+                )
+            except jwt.exceptions.DecodeError:
+                _LOGGER.warning("Failed to decode refreshed authentication token")
+            else:
+                if "exp" in token:
+                    self.authentication_token_exp = datetime.fromtimestamp(
+                        token["exp"]
+                    )
+        if refresh_data.get("refreshToken"):
+            self.refresh_token_value = refresh_data["refreshToken"]
+
+        return refresh_data["res"] == "OK"
 
     async def send_otp(self, device_id: int, auth_otp_hash: str) -> bool:
         """Send the OTP device challenge."""
@@ -392,6 +422,9 @@ class ApiManager:
         if login_data.get("needDeviceAuthorization", False):
             # needs a 2FA
             raise Login2FAError("2FA authentication required", response)
+
+        if login_data.get("refreshToken"):
+            self.refresh_token_value = login_data["refreshToken"]
 
         if login_data["hash"] is not None:
             self.authentication_token = login_data["hash"]
