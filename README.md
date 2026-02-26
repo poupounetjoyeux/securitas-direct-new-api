@@ -1,4 +1,5 @@
 # securitas-direct-new-api
+
 This repository contains the new securitas direct API that can be integrated in Home Assistant.
 
 ## Features
@@ -25,12 +26,13 @@ _or_
 4. Select that entry and click the download button. ⬇️
 
 ## Setup
+
 ![Options](./docs/images/setup.png)
 
 This integration supports config flow, so go to the list of integrations and click on add Securitas from there.
 
 - Enter the username and password for your Securitas account.
-- Use 2FA (default: yes). Uncheck this box if you want to skip the 2FA. 
+- Use 2FA (default: yes). Uncheck this box if you want to skip the 2FA.
 - Country Code. One of BR (Brasil), CL (Chile), ES (Spain), FR (France), GB (Great Britain), IE (Ireland), IT (Italy) and AR (Argentine). If you are outside of those countries, try entering "default" and if that doesn't work open an issue to see if we can expand.
 - PIN code (optional). If you set a PIN here, you will need to enter it to arm or disarm the alarm using the Home Assistant panel. This PIN is independent of Securitas. It is never sent to Securitas and it has nothing to do with your account with them.
 - Perimetral alarm (default: no). If you have sensors outside of your home, check the box. Otherwise, leave the box unchecked. This will ensure that the integration sends the correct commands to arm the alarm.
@@ -38,13 +40,63 @@ This integration supports config flow, so go to the list of integrations and cli
 - Update scan interval (default: 120). How often the integration checks the status of the alarm.
 
 ## Options
+
 If you need to change some of the options, you can configure the integration (in HA, go to Settings -> Integrations -> Securitas Direct -> Configure)
 
 ![Options](./docs/images/options.png)
 
+## Alarm State Mapping
+
+Securitas Direct supports several alarm modes, but Home Assistant's alarm panel only has four buttons: **Home**, **Away**, **Night**, and **Custom Bypass**. This integration lets you choose which Securitas mode each button activates.
+
+### Securitas Alarm Modes
+
+| Mode                      | Description                           |
+| ------------------------- | ------------------------------------- |
+| Disarmed                  | Alarm is off                          |
+| Partial Day               | Interior sensors armed (daytime)      |
+| Partial Night             | Interior sensors armed (nighttime)    |
+| Total                     | All interior sensors armed            |
+| Perimeter Only            | External/outdoor sensors only         |
+| Partial Day + Perimeter   | Daytime interior + external sensors   |
+| Partial Night + Perimeter | Nighttime interior + external sensors |
+| Total + Perimeter         | All interior + external sensors       |
+
+### How It Works
+
+Each of the four HA alarm buttons can be mapped to any Securitas mode in the integration options (Settings -> Integrations -> Securitas Direct -> Configure). If you set a button to "Not Used", it will be hidden from the alarm panel.
+
+When the integration checks the alarm status, it translates the Securitas response back to the correct HA state using the same mapping. For example, if you mapped the **Away** button to "Total + Perimeter", then when Securitas reports "Total + Perimeter" the alarm panel will show "Armed Away".
+
+When switching between armed modes (e.g. from "Armed Home" to "Armed Away"), the integration automatically disarms the alarm first and then arms with the new mode. This is necessary because the Securitas API treats interior and perimeter as independent axes -- sending a new interior mode without disarming first could leave the perimeter in an unexpected state.
+
+### Default Mappings
+
+**Standard installations** (no perimeter sensors):
+
+| HA Button | Securitas Mode    |
+| --------- | ----------------- |
+| Home      | Partial Day       |
+| Away      | Total             |
+| Night     | Partial Night     |
+| Custom    | Not Used (hidden) |
+
+**Perimeter installations** (external sensors enabled):
+
+| HA Button | Securitas Mode            |
+| --------- | ------------------------- |
+| Home      | Partial Day               |
+| Away      | Total + Perimeter         |
+| Night     | Partial Night + Perimeter |
+| Custom    | Perimeter Only            |
+
+### Known Limitations
+
+The status code for **Partial Night + Perimeter** is currently unknown. If your alarm is in this state, it will show as "Custom Bypass" in Home Assistant. If you have this situation, please [open an issue](https://github.com/guerrerotook/securitas-direct-new-api/issues) so we can identify the correct status code and add proper support.
+
 ## New Features
 
-Added a button to update the status of your alamr using the API. Thanks to @edwin-anne.
+Added a button to update the status of your alarm using the API. Thanks to @edwin-anne.
 
 ## Breaking changes
 

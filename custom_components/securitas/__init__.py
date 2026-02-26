@@ -164,6 +164,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         config[CONF_MAP_AWAY] = defaults[CONF_MAP_AWAY]
         config[CONF_MAP_NIGHT] = defaults[CONF_MAP_NIGHT]
         config[CONF_MAP_CUSTOM] = defaults[CONF_MAP_CUSTOM]
+        hass.config_entries.async_update_entry(
+            entry,
+            data={
+                **entry.data,
+                CONF_MAP_HOME: config[CONF_MAP_HOME],
+                CONF_MAP_AWAY: config[CONF_MAP_AWAY],
+                CONF_MAP_NIGHT: config[CONF_MAP_NIGHT],
+                CONF_MAP_CUSTOM: config[CONF_MAP_CUSTOM],
+            },
+        )
 
     if CONF_DEVICE_ID in entry.data:
         config[CONF_DEVICE_ID] = entry.data[CONF_DEVICE_ID]

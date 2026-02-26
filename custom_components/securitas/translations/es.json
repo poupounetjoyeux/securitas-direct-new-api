@@ -39,6 +39,16 @@
                     "scan_interval": "Intervalo de actualización (seg)",
                     "delay_check_operation": "Retardo para comprobar las operaciones de armado y desarmado (seg)"
                 }
+            },
+            "mappings": {
+                "title": "Asignación de estados de alarma",
+                "description": "Asigna cada acción de alarma de Home Assistant a un modo de alarma Securitas. Selecciona 'No usado' para desactivar un botón.",
+                "data": {
+                    "map_home": "Casa",
+                    "map_away": "Fuera",
+                    "map_night": "Noche",
+                    "map_custom": "Personalizado"
+                }
             }
         }
     }
