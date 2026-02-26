@@ -287,8 +287,10 @@ class SecuritasAlarm(alarm.AlarmControlPanelEntity):
             _LOGGER.error("No command configured for mode %s", mode)
             return
 
-        # Disarm first if currently in a confirmed armed state
-        if self._state in (
+        # Disarm first if previously in a confirmed armed state.
+        # Note: self._state is already ARMING (set by caller via
+        # __force_state), so check _last_status for the actual prior state.
+        if self._last_status in (
             AlarmControlPanelState.ARMED_HOME,
             AlarmControlPanelState.ARMED_AWAY,
             AlarmControlPanelState.ARMED_NIGHT,
@@ -301,9 +303,9 @@ class SecuritasAlarm(alarm.AlarmControlPanelEntity):
                 )
             except SecuritasDirectError as err:
                 _LOGGER.warning(
-                    "Failed to disarm before re-arming (state: %s, alarm may "
-                    "already be disarmed), continuing with arm: %s",
-                    self._state,
+                    "Failed to disarm before re-arming (last_status: %s, alarm "
+                    "may already be disarmed), continuing with arm: %s",
+                    self._last_status,
                     err.args,
                 )
             else:
