@@ -299,13 +299,20 @@ class SecuritasOptionsFlowHandler(config_entries.OptionsFlow):
 
         # Determine defaults for mapping dropdowns
         defaults = PERI_DEFAULTS if peri_alarm else STD_DEFAULTS
-        map_home = self._get(CONF_MAP_HOME, defaults[CONF_MAP_HOME])
-        map_away = self._get(CONF_MAP_AWAY, defaults[CONF_MAP_AWAY])
-        map_night = self._get(CONF_MAP_NIGHT, defaults[CONF_MAP_NIGHT])
-        map_custom = self._get(CONF_MAP_CUSTOM, defaults[CONF_MAP_CUSTOM])
-
-        # Build dropdown options based on perimeter setting
         options = PERI_OPTIONS if peri_alarm else STD_OPTIONS
+        valid_values = {state.value for state in options}
+
+        def _valid_map(key: str) -> str:
+            """Return saved mapping if valid for current options, else default."""
+            val = self._get(key, defaults[key])
+            return val if val in valid_values else defaults[key]
+
+        map_home = _valid_map(CONF_MAP_HOME)
+        map_away = _valid_map(CONF_MAP_AWAY)
+        map_night = _valid_map(CONF_MAP_NIGHT)
+        map_custom = _valid_map(CONF_MAP_CUSTOM)
+
+        # Build dropdown options
         select_options = [
             {"value": state.value, "label": STATE_LABELS[state]}
             for state in options
