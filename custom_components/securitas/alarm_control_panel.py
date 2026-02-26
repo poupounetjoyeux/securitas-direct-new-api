@@ -287,10 +287,12 @@ class SecuritasAlarm(alarm.AlarmControlPanelEntity):
             _LOGGER.error("No command configured for mode %s", mode)
             return
 
-        # Disarm first if currently armed (not disarmed / not already disarming)
-        if self._state not in (
-            AlarmControlPanelState.DISARMED,
-            AlarmControlPanelState.DISARMING,
+        # Disarm first if currently in a confirmed armed state
+        if self._state in (
+            AlarmControlPanelState.ARMED_HOME,
+            AlarmControlPanelState.ARMED_AWAY,
+            AlarmControlPanelState.ARMED_NIGHT,
+            AlarmControlPanelState.ARMED_CUSTOM_BYPASS,
         ):
             try:
                 await self.client.session.disarm_alarm(
@@ -298,9 +300,13 @@ class SecuritasAlarm(alarm.AlarmControlPanelEntity):
                     STATE_TO_COMMAND[SecuritasState.DISARMED],
                 )
             except SecuritasDirectError as err:
-                _LOGGER.error("Failed to disarm before re-arming: %s", err.args)
-                return
-            await asyncio.sleep(1)
+                _LOGGER.warning(
+                    "Failed to disarm before re-arming (alarm may already be "
+                    "disarmed), continuing with arm: %s",
+                    err.args,
+                )
+            else:
+                await asyncio.sleep(1)
 
         arm_status: ArmStatus = ArmStatus()
         try:
