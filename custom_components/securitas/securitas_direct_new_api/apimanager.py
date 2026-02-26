@@ -174,6 +174,7 @@ class ApiManager:
 
         if (
             "errors" in response_dict
+            and isinstance(response_dict["errors"], dict)
             and "data" in response_dict["errors"]
             and "reason" in response_dict["errors"]["data"]
         ):
@@ -261,11 +262,12 @@ class ApiManager:
         await self._execute_request(content, "Logout")
 
     def _extract_otp_data(self, data) -> tuple[str, list[OtpPhone]]:
-        otp_hash = data["auth-otp-hash"]
+        if not data:
+            return (None, [])
+        otp_hash = data.get("auth-otp-hash")
         phones: list[OtpPhone] = []
-        for item in data["auth-phones"]:
+        for item in data.get("auth-phones", []):
             phones.append(OtpPhone(item["id"], item["phone"]))
-
         return (otp_hash, phones)
 
     async def validate_device(
@@ -288,13 +290,17 @@ class ApiManager:
 
         if otp_succeed:
             self.authentication_otp_challenge_value = (auth_otp_hash, sms_code)
-        response = {}
         try:
             response = await self._execute_request(content, "mkValidateDevice")
             self.authentication_otp_challenge_value = None
         except SecuritasDirectError as err:
             # the API call fails but we want the phone data in the response
-            return self._extract_otp_data(err.args[1]["errors"][0]["data"])
+            if len(err.args) > 1 and err.args[1] is not None:
+                try:
+                    return self._extract_otp_data(err.args[1]["errors"][0]["data"])
+                except (KeyError, IndexError, TypeError):
+                    pass
+            raise
 
         if "errors" in response and response["errors"][0]["message"] == "Unauthorized":
             # the API call succeeds but is unauthorized
@@ -324,7 +330,7 @@ class ApiManager:
         refresh_data = response["data"]["xSRefreshLogin"]
         if refresh_data is None:
             raise SecuritasDirectError("xSRefreshLogin response is None", response)
-        return refresh_data["res"]
+        return refresh_data["res"] == "OK"
 
     async def send_otp(self, device_id: int, auth_otp_hash: str) -> bool:
         """Send the OTP device challenge."""
@@ -569,6 +575,10 @@ class ApiManager:
         if "errors" in response:
             return Sentinel("", "", 0, 0)
 
+        if not service.attributes:
+            _LOGGER.warning("No attributes found for sentinel service %s", service.id)
+            return Sentinel("", "", 0, 0)
+
         zone = service.attributes[0].value
         comfort_data = response["data"]["xSComfort"]
         if comfort_data is None:
@@ -595,11 +605,17 @@ class ApiManager:
         self, installation: Installation, service: Service
     ) -> AirQuality:
         """Get sentinel status."""
+        zone_val = "0"
+        if service.attributes:
+            zone_val = str(service.attributes[0].value)
+        else:
+            _LOGGER.warning("No attributes found for air quality service %s", service.id)
+
         content = {
             "operationName": "AirQualityGraph",
             "variables": {
                 "numinst": installation.number,
-                "zone": str(service.attributes[0].value),
+                "zone": zone_val,
             },
             "query": "query AirQualityGraph($numinst: String!, $zone: String!) {\n  xSAirQ(numinst: $numinst, zone: $zone) {\n    res\n    msg\n    graphData {\n      status {\n        avg6h\n        avg6hMsg\n        avg24h\n        avg24hMsg\n        avg7d\n        avg7dMsg\n        avg4w\n        avg4wMsg\n        current\n        currentMsg\n      }\n      daysTotal\n      days {\n        id\n        value\n      }\n      hoursTotal\n      hours {\n        id\n        value\n      }\n      weeksTotal\n      weeks {\n        id\n        value\n      }\n    }\n  }\n}",
         }
@@ -906,9 +922,10 @@ class ApiManager:
             raw_data = response["data"]["xSGetLockCurrentMode"]
             if raw_data is None:
                 return SmartLockMode(None, "0")
-            return SmartLockMode(
-                raw_data["res"],
-                raw_data["smartlockInfo"][0]["lockStatus"])
+            lock_status = "0"
+            if raw_data.get("smartlockInfo"):
+                lock_status = raw_data["smartlockInfo"][0]["lockStatus"]
+            return SmartLockMode(raw_data["res"], lock_status)
 
         return SmartLockMode(None, "0")
     

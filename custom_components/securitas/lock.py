@@ -49,18 +49,22 @@ async def async_setup_entry(
         services: list[Service] = await client.get_services(device.installation)
         for service in services:
             _LOGGER.debug("Service: %s", service.request)
-            if service.request == "DOORLOCK": 
+            if service.request == "DOORLOCK":
                 locks.append(
                     SecuritasLock(
                         device.installation,
-                        #state=LockState.LOCKED,
                         client=client,
                         hass=hass,
                     )
                 )
-                async_add_entities(locks, True)
-                locks[0].async_update_status()
-                
+
+    if not locks:
+        _LOGGER.debug("No Securitas Direct DOORLOCK services found")
+        return
+
+    async_add_entities(locks, True)
+
+
 class SecuritasLock(lock.LockEntity):
     def __init__(
         self,
@@ -70,6 +74,7 @@ class SecuritasLock(lock.LockEntity):
     ) -> None:
         self._state = "2" # locked
         self._last_state = "2"
+        self._new_state: str = "2"
         self._changed_by: str = ""
         self._device: str = installation.address
         self.entity_id: str = f"securitas_direct.{installation.number}"
@@ -129,14 +134,18 @@ class SecuritasLock(lock.LockEntity):
         """When entity will be removed from Home Assistant."""
         if self._update_unsub:
             self._update_unsub()  # Unsubscribe from updates
+            self._update_unsub = None
 
     async def async_update(self) -> None:
         await self.async_update_status()
     
     async def async_update_status(self, now=None) -> None:
-        self._new_state = await self.get_lock_state()
-        if self._new_state != "0": 
-            self._state = self._new_state
+        try:
+            self._new_state = await self.get_lock_state()
+            if self._new_state != "0":
+                self._state = self._new_state
+        except SecuritasDirectError as err:
+            _LOGGER.error("Error updating Securitas lock state: %s", err)
 
     async def get_lock_state(self) -> str:
         smartlock_status: SmartLockMode = await self.client.session.get_lock_current_mode(
