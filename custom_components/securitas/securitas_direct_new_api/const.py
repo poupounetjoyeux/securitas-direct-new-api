@@ -13,20 +13,24 @@ class SecuritasState(StrEnum):
     """Verisure alarm states - combinations of interior mode and perimeter."""
     NOT_USED = "not_used"
     DISARMED = "disarmed"
-    PARTIAL = "partial"
+    PARTIAL_DAY = "partial_day"
+    PARTIAL_NIGHT = "partial_night"
     TOTAL = "total"
     PERI_ONLY = "peri_only"
-    PARTIAL_PERI = "partial_peri"
+    PARTIAL_DAY_PERI = "partial_day_peri"
+    PARTIAL_NIGHT_PERI = "partial_night_peri"
     TOTAL_PERI = "total_peri"
 
 
 # Map SecuritasState -> API arm command string
 STATE_TO_COMMAND: dict[SecuritasState, str] = {
     SecuritasState.DISARMED: "DARM1DARMPERI",
-    SecuritasState.PARTIAL: "ARMDAY1",
+    SecuritasState.PARTIAL_DAY: "ARMDAY1",
+    SecuritasState.PARTIAL_NIGHT: "ARMNIGHT1",
     SecuritasState.TOTAL: "ARM1",
     SecuritasState.PERI_ONLY: "PERI1",
-    SecuritasState.PARTIAL_PERI: "ARMDAY1PERI1",
+    SecuritasState.PARTIAL_DAY_PERI: "ARMDAY1PERI1",
+    SecuritasState.PARTIAL_NIGHT_PERI: "ARMNIGHT1PERI1",
     SecuritasState.TOTAL_PERI: "ARM1PERI1",
 }
 
@@ -34,8 +38,9 @@ STATE_TO_COMMAND: dict[SecuritasState, str] = {
 PROTO_TO_STATE: dict[str, SecuritasState] = {
     "D": SecuritasState.DISARMED,
     "E": SecuritasState.PERI_ONLY,
-    "P": SecuritasState.PARTIAL,
-    "B": SecuritasState.PARTIAL_PERI,
+    "P": SecuritasState.PARTIAL_DAY,
+    "Q": SecuritasState.PARTIAL_NIGHT,
+    "B": SecuritasState.PARTIAL_DAY_PERI,
     "T": SecuritasState.TOTAL,
     "A": SecuritasState.TOTAL_PERI,
 }
@@ -44,10 +49,12 @@ PROTO_TO_STATE: dict[str, SecuritasState] = {
 STATE_LABELS: dict[SecuritasState, str] = {
     SecuritasState.NOT_USED: "Not used",
     SecuritasState.DISARMED: "Disarmed",
-    SecuritasState.PARTIAL: "Partial",
+    SecuritasState.PARTIAL_DAY: "Partial Day",
+    SecuritasState.PARTIAL_NIGHT: "Partial Night",
     SecuritasState.TOTAL: "Total",
     SecuritasState.PERI_ONLY: "Perimeter only",
-    SecuritasState.PARTIAL_PERI: "Partial + Perimeter",
+    SecuritasState.PARTIAL_DAY_PERI: "Partial Day + Perimeter",
+    SecuritasState.PARTIAL_NIGHT_PERI: "Partial Night + Perimeter",
     SecuritasState.TOTAL_PERI: "Total + Perimeter",
 }
 
@@ -55,7 +62,8 @@ STATE_LABELS: dict[SecuritasState, str] = {
 STD_OPTIONS: list[SecuritasState] = [
     SecuritasState.NOT_USED,
     SecuritasState.DISARMED,
-    SecuritasState.PARTIAL,
+    SecuritasState.PARTIAL_DAY,
+    SecuritasState.PARTIAL_NIGHT,
     SecuritasState.TOTAL,
 ]
 
@@ -63,24 +71,26 @@ STD_OPTIONS: list[SecuritasState] = [
 PERI_OPTIONS: list[SecuritasState] = [
     SecuritasState.NOT_USED,
     SecuritasState.DISARMED,
-    SecuritasState.PARTIAL,
+    SecuritasState.PARTIAL_DAY,
+    SecuritasState.PARTIAL_NIGHT,
     SecuritasState.TOTAL,
     SecuritasState.PERI_ONLY,
-    SecuritasState.PARTIAL_PERI,
+    SecuritasState.PARTIAL_DAY_PERI,
+    SecuritasState.PARTIAL_NIGHT_PERI,
     SecuritasState.TOTAL_PERI,
 ]
 
 # Default mappings matching current behavior (keyed by HA button name)
 STD_DEFAULTS: dict[str, str] = {
-    "map_home": SecuritasState.PARTIAL.value,
+    "map_home": SecuritasState.PARTIAL_DAY.value,
     "map_away": SecuritasState.TOTAL.value,
-    "map_night": SecuritasState.PARTIAL.value,
+    "map_night": SecuritasState.PARTIAL_NIGHT.value,
     "map_custom": SecuritasState.NOT_USED.value,
 }
 
 PERI_DEFAULTS: dict[str, str] = {
-    "map_home": SecuritasState.PARTIAL.value,
+    "map_home": SecuritasState.PARTIAL_DAY.value,
     "map_away": SecuritasState.TOTAL_PERI.value,
-    "map_night": SecuritasState.PARTIAL_PERI.value,
+    "map_night": SecuritasState.PARTIAL_NIGHT_PERI.value,
     "map_custom": SecuritasState.PERI_ONLY.value,
 }
