@@ -71,16 +71,16 @@ PERI_OPTIONS: list[SecuritasState] = [
 ]
 
 # Default mappings matching current behavior (keyed by HA button name)
-STD_DEFAULTS: dict[str, SecuritasState] = {
-    "map_home": SecuritasState.PARTIAL,
-    "map_away": SecuritasState.TOTAL,
-    "map_night": SecuritasState.PARTIAL,
-    "map_custom": SecuritasState.NOT_USED,
+STD_DEFAULTS: dict[str, str] = {
+    "map_home": SecuritasState.PARTIAL.value,
+    "map_away": SecuritasState.TOTAL.value,
+    "map_night": SecuritasState.PARTIAL.value,
+    "map_custom": SecuritasState.NOT_USED.value,
 }
 
-PERI_DEFAULTS: dict[str, SecuritasState] = {
-    "map_home": SecuritasState.PARTIAL,
-    "map_away": SecuritasState.TOTAL_PERI,
-    "map_night": SecuritasState.PARTIAL_PERI,
-    "map_custom": SecuritasState.PERI_ONLY,
+PERI_DEFAULTS: dict[str, str] = {
+    "map_home": SecuritasState.PARTIAL.value,
+    "map_away": SecuritasState.TOTAL_PERI.value,
+    "map_night": SecuritasState.PARTIAL_PERI.value,
+    "map_custom": SecuritasState.PERI_ONLY.value,
 }
