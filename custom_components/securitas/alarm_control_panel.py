@@ -230,7 +230,7 @@ class SecuritasAlarm(alarm.AlarmControlPanelEntity):
                 )
 
     def _check_code_for_arm_if_required(self, code: str | None) -> bool:
-        """Check that the code entered in the panel matches the configured code, but only if arming requires a code."""
+        """Check the code only if arming requires a code."""
         if not self.code_arm_required:
             return True
         return self._check_code(code)

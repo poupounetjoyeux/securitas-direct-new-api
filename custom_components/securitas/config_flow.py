@@ -275,13 +275,7 @@ class SecuritasOptionsFlowHandler(config_entries.OptionsFlow):
             return await self.async_step_mappings()
         scan_interval = self._get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
 
-        code_arm_required: bool = self.config_entry.options.get(
-            CONF_CODE_ARM_REQUIRED,
-            self.config_entry.data.get(
-                CONF_CODE_ARM_REQUIRED, DEFAULT_CODE_ARM_REQUIRED
-            ),
-        )
-
+        code_arm_required = self._get(CONF_CODE_ARM_REQUIRED, DEFAULT_CODE_ARM_REQUIRED)
         delay_check_operation = self._get(
             CONF_DELAY_CHECK_OPERATION, DEFAULT_DELAY_CHECK_OPERATION
         )
@@ -292,7 +286,7 @@ class SecuritasOptionsFlowHandler(config_entries.OptionsFlow):
 
         schema = vol.Schema(
             {
-                vol.Optional(CONF_CODE, default=DEFAULT_CODE): str,
+                vol.Optional(CONF_CODE, default=self._get(CONF_CODE, DEFAULT_CODE)): str,
                 vol.Optional(CONF_CODE_ARM_REQUIRED, default=code_arm_required): bool,
                 vol.Optional(CONF_PERI_ALARM, default=peri_alarm): bool,
                 vol.Optional(
